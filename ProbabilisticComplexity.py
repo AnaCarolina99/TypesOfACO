@@ -12,6 +12,8 @@ import random  # O(1)
 import math  # O(1)
 import time  # O(1)
 
+#Ordem de complexidade da abordagem dinâmica O(num ants x num instances2 x log(num instances))
+
 # Função para calcular a distância euclidiana entre todas as instâncias.
 # Complexidade: O(num_instances^2 * num_attributes)
 def get_pairwise_distance(matrix: np.ndarray) -> np.ndarray:
