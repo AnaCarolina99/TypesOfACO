@@ -22,7 +22,7 @@ def get_pheromone_deposit(instance_subset: np.ndarray, distances: np.ndarray, de
     if tour_length == 0:  # O(1)
         return 0  # O(1)
 
-    return deposit_factor / tour_length
+    return deposit_factor / tour_length  # O(1)
 
 # Função para seleção usando programação dinâmica
 def dynamic_programming_selection(X, Y, distances, visibility_rates, Q):
