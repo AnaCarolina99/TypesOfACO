@@ -87,6 +87,58 @@ def get_best_solution(ant_solutions: np.ndarray, X, Y) -> np.array:
             best_solution = i  # O(1)
     return ant_solutions[best_solution]  # O(1)
 
+
+# Função para executar o algoritmo de otimização da colônia de formigas
+# e selecionar instâncias relevantes para a classificação.
+# Complexidade: O(num_ants * num_instances^2 * log(num_instances) + num_ants * num_instances * num_attributes)
+def run_colony(X, Y, initial_pheromone, evaporation_rate, Q):
+    distances = get_pairwise_distance(X)  # O(num_instances^2 * num_attributes)
+    visibility_rates = get_visibility_rates_by_distances(distances)  # O(num_instances^2)
+    the_colony = create_colony(X.shape[0])  # O(num_ants^2)
+    
+    for i in range(X.shape[0]):  # Loop O(num_instances)
+        the_colony[i, i] = 1  # O(1)
+
+    ant_choices = [[(i, i)] for i in range(the_colony.shape[0])]  # O(num_ants)
+    pheromone_trails = create_pheromone_trails(distances, initial_pheromone)  # O(num_instances^2)
+    
+    while -1 in the_colony:  # Loop O(num_ants * num_instances)
+
+        for i, ant in enumerate(the_colony):  # Loop O(num_ants)
+            if -1 in ant:  # O(1)
+                last_choice = ant_choices[i][-1]  # O(1)
+                ant_pos = last_choice[1]  # O(1)
+                choices = get_probabilities_paths_ordered(
+                    ant,
+                    visibility_rates[ant_pos, :],
+                    pheromone_trails[ant_pos, :])  # O(num_instances * log(num_instances))
+
+                for choice in choices:  # Loop O(num_instances * log(num_instances))
+                    next_instance = choice[0]  # O(1)
+                    probability = choice[1]  # O(1)
+
+                    ajk = random.randint(0, 1)  # O(1)
+                    final_probability = probability * ajk  # O(1)
+                    if final_probability != 0:  # O(1)
+                        ant_choices[i].append((ant_pos, next_instance))  # O(1)
+                        the_colony[i, next_instance] = 1  # O(1)
+                        break  # O(1)
+                    else:
+                        the_colony[i, next_instance] = 0  # O(1)
+
+        for i in range(the_colony.shape[0]):  # Loop O(num_ants)
+            ant_deposit = get_pheromone_deposit(ant_choices[i], distances, Q)  # O(num_ants * num_instances * num_attributes)
+            for path in ant_choices[i][1:]:  # Loop O(num_ants * num_instances)
+                pheromone_trails[path[0], path[1]] += ant_deposit  # O(num_ants * num_instances)
+
+        for i in range(pheromone_trails.shape[0]):  # Loop O(num_instances)
+            for j in range(pheromone_trails.shape[1]):  # Loop O(num_instances)
+                pheromone_trails[i, j] = (1 - evaporation_rate) * pheromone_trails[i, j]  # O(1)
+
+    instances_selected = np.nonzero(get_best_solution(the_colony, X, Y))[0]  # O(num_ants * num_instances * num_attributes)
+    return instances_selected  # O(num_ants * num_instances * num_attributes)
+
+
 # Função principal
 def main():
     start_time = time.time()  # O(1)
