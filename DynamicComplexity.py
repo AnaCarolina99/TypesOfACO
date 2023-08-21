@@ -1,22 +1,30 @@
-import numpy as np
-import pandas as pd
-from sklearn.metrics.pairwise import euclidean_distances
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import accuracy_score
-from typing import *
-import time
+from itertools import count  # O(1)
+from sqlite3 import Time  # O(1)
+import pandas as pd  # O(1)
+import numpy as np  # O(1)
+from sklearn.metrics.pairwise import euclidean_distances  # O(num_instances^2 * num_attributes)
+from sklearn.neighbors import KNeighborsClassifier  # O(1)
+from sklearn.metrics import accuracy_score  # O(1)
+from numba import jit, cuda  # O(1)
+from typing import *  # O(1)
+import random  # O(1)
+import math  # O(1)
+import time  # O(1)
 
 #Ordem de complexidade da abordagem dinâmica O(num instances^2 x num attributes)
 
 # Função para calcular a distância entre todas as instâncias
+# Complexidade: O(num_instances^2 * num_attributes)
 def get_pairwise_distance(matrix: np.ndarray) -> np.ndarray:
     return euclidean_distances(matrix)  # O(n_instances^2 * n_attributes)
 
 # Função para calcular as taxas de visibilidade com base nas distâncias
+# Complexidade: O(num_instances * num_attributes)
 def get_visibility_rates_by_distances(distances: np.ndarray) -> np.ndarray:
     return 1 / np.maximum(np.sum(distances, axis=1), 1e-6)  # O(n_instances * n_attributes)
 
 # Função para calcular o depósito de feromônio com base em um subconjunto de instâncias
+# Complexidade: O(num_instances^2 * num_attributes)
 def get_pheromone_deposit(instance_subset: np.ndarray, distances: np.ndarray, deposit_factor: float) -> float:
     tour_length = np.sum(distances[instance_subset[:, None], instance_subset])  # O(n_instances^2 * n_attributes)
     if tour_length == 0:  # O(1)
@@ -25,6 +33,7 @@ def get_pheromone_deposit(instance_subset: np.ndarray, distances: np.ndarray, de
     return deposit_factor / tour_length  # O(1)
 
 # Função para seleção usando programação dinâmica
+# Complexidade: O(num_instances^2 * num_attributes)
 def dynamic_programming_selection(X, Y, distances, visibility_rates, Q):
     num_instances = X.shape[0]
     dp_table = np.zeros((num_instances + 1, num_instances + 1))
@@ -60,19 +69,19 @@ def main():
     start_time = time.time()
     
     # Carregar o conjunto de dados
-    original_df = pd.read_csv("dna.csv", sep=';')  
+    original_df = pd.read_csv("dna.csv", sep=';')  # O(n_instances * num_attributes)
 
     # Pré-processamento dos dados
-    dataframe = pd.read_csv("dna.csv", sep=';')  
-    classes = dataframe["class"]
-    dataframe = dataframe.drop(columns=["class"])
+    dataframe = pd.read_csv("dna.csv", sep=';')  # O(n_instances * num_attributes)
+    classes = dataframe["class"] # O(n_instances)
+    dataframe = dataframe.drop(columns=["class"]) # O(n_instances * num_attributes)
 
     # Cálculos de distâncias e taxas de visibilidade
     distances = get_pairwise_distance(dataframe.to_numpy())  # O(n_instances^2 * n_attributes)
     visibility_rates = get_visibility_rates_by_distances(distances)  # O(n_instances * n_attributes)
 
-    initial_pheromone = 1
-    Q = 1
+    initial_pheromone = 1   # O(1)
+    Q = 1  # O(1)
 
     print('Starting search')
     indices_selected = dynamic_programming_selection(dataframe.to_numpy(), classes.to_numpy(), distances,
