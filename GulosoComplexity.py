@@ -1,23 +1,24 @@
-from itertools import count
-from sqlite3 import Time
-import pandas as pd
-import numpy as np
-from sklearn.metrics.pairwise import euclidean_distances
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import accuracy_score
-from numba import jit, cuda
-from typing import *
-import random
-import math
-import time
-
+from itertools import count  # O(1)
+from sqlite3 import Time  # O(1)
+import pandas as pd  # O(1)
+import numpy as np  # O(1)
+from sklearn.metrics.pairwise import euclidean_distances  # O(num_instances^2 * num_attributes)
+from sklearn.neighbors import KNeighborsClassifier  # O(1)
+from sklearn.metrics import accuracy_score  # O(1)
+from numba import jit, cuda  # O(1)
+from typing import *  # O(1)
+import random  # O(1)
+import math  # O(1)
+import time  # O(1)
 #Ordem de complexidade da abordagem gulosa O(num ants x num instances2 *iterations)
 
 # Função para calcular a distância entre todas as instâncias
+# Complexidade: O(num_instances^2 * num_attributes)
 def get_pairwise_distance(matrix: np.ndarray) -> np.ndarray:
     return euclidean_distances(matrix)  # O(n_instances^2 * num_attributes)
 
 # Função para calcular as taxas de visibilidade com base nas distâncias
+# Complexidade: O(num_instances^2)
 def get_visibility_rates_by_distances(distances: np.ndarray) -> np.ndarray:
     visibilities = np.zeros(distances.shape)  # O(n_instances^2)
     for i in range(distances.shape[0]):
@@ -30,16 +31,19 @@ def get_visibility_rates_by_distances(distances: np.ndarray) -> np.ndarray:
     return visibilities
 
 # Função para criar a matriz de formigas
+# Complexidade: O(1)
 def create_colony(num_ants):
     return np.full((num_ants, num_ants), -1)  # O(1)
 
 # Função para criar trilhas de feromônio
+# Complexidade: O(num_instances^2 * num_attributes)
 def create_pheromone_trails(search_space: np.ndarray, initial_pheromone: float) -> np.ndarray:
     trails = np.full(search_space.shape, initial_pheromone, dtype=np.float64)  # O(n_instances^2 * num_attributes)
     np.fill_diagonal(trails, 0)  # O(n_instances)
     return trails
 
 # Função para calcular o depósito de feromônio com base nas escolhas das formigas
+# Complexidade: O(num_ants * num_instances^2 * num_attributes)
 def get_pheromone_deposit(ant_choices: List[Tuple[int, int]], distances: np.ndarray, deposit_factor: float) -> float:
     tour_length = 0
     for path in ant_choices:
@@ -54,6 +58,7 @@ def get_pheromone_deposit(ant_choices: List[Tuple[int, int]], distances: np.ndar
     return deposit_factor / tour_length  # O(1)
 
 # Função para escolher as próximas instâncias com base nas taxas de feromônio
+# Complexidade: O(num_ants * num_instances * log(num_instances))
 def get_probabilities_paths_ordered_greedy(ant: np.array, phe_trails) -> Tuple[Tuple[int, Any]]:
     available_instances = np.nonzero(ant < 0)[0]  # O(num_ants * n_instances)
 
@@ -64,6 +69,7 @@ def get_probabilities_paths_ordered_greedy(ant: np.array, phe_trails) -> Tuple[T
     return tuple([(int(i), 1) for i in available_instances[sorted_probabilities]])  # O(num_ants * n_instances * log(n_instances))
 
 # Função para encontrar a melhor solução
+# Complexidade: O(num_ants * num_instances * num_attributes)
 def get_best_solution(ant_solutions: np.ndarray, X, Y) -> np.array:
     accuracies = np.zeros(ant_solutions.shape[0], dtype=np.float64)  # O(num_ants)
     best_solution = 0
@@ -80,7 +86,9 @@ def get_best_solution(ant_solutions: np.ndarray, X, Y) -> np.array:
 
     return ant_solutions[best_solution]  # O(n_instances)
 
-# Função principal
+# Função para executar o algoritmo de otimização da colônia de formigas
+# e selecionar instâncias relevantes para a classificação.
+# Complexidade: O(num_ants * num_instances^2 * num_attributes)
 def run_colony(X, Y, initial_pheromone, evaporarion_rate, Q):
     distances = get_pairwise_distance(X)  # O(n_instances^2 * num_attributes)
     visibility_rates = get_visibility_rates_by_distances(distances)  # O(n_instances^2)
